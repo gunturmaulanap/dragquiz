@@ -42,7 +42,7 @@ public class car : MonoBehaviour
                 GetComponent<AudioSource>().Play();
                 
                 // Increase speed based on the score
-                speed += 1.5f; // Adjust this value based on your preference
+                speed += 1f; // Adjust this value based on your preference
                 UpdateBoxAnimatorSpeed();
 
             } else{
