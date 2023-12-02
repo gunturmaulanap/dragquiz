@@ -96,7 +96,8 @@ public class car : MonoBehaviour
         }
     }
 
-    public void restart(){
+    public void restart()
+    {
         Time.timeScale = 1;
         Application.LoadLevel(Application.loadedLevelName);
     }
