@@ -8,6 +8,7 @@ public class car : MonoBehaviour
     public GameObject box, gameover, congratulation;
     public TMP_Text soal_tampil, skor_tampil;
     public float speed, sudut;
+    public AutoMoveBW autoMoveScript;
 
     public string [] soal, kuncijawaban;//80|23|45
     string[] jawaban;
@@ -15,7 +16,8 @@ public class car : MonoBehaviour
     int skor = 0;
 
     void Start(){
-        StartCoroutine(lanjutsoal());
+        autoMoveScript = GameObject.FindObjectOfType<AutoMoveBW>();
+    StartCoroutine(lanjutsoal());
     }
 
     void Update()

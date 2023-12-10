@@ -6,6 +6,7 @@ public class AutoMoveBW : MonoBehaviour
 {
     public float speed = 5f; // Kecepatan pergerakan objek
     public GameObject box;
+    private int score = 0;
 
     void Update()
     {
@@ -22,10 +23,14 @@ public class AutoMoveBW : MonoBehaviour
     {
         if (obj.name == "box")
         {
-            
-            speed += 1.5f; 
+            speed += 1.5f;
+            UpdateBoxAnimatorSpeed();
 
-            UpdateBoxAnimatorSpeed(); 
+            // Check if the score is a multiple of 10
+            if (score % 10 == 0)
+            {
+                IncreaseSpeed();
+            }
         }
     }
 
@@ -34,5 +39,20 @@ public class AutoMoveBW : MonoBehaviour
         // Adjust the animator speed based on the updated speed value
         float animatorSpeed = Mathf.Clamp(speed / 5.0f, 1.0f, 3.0f); // Adjust the range based on your preference
         box.GetComponent<Animator>().speed = animatorSpeed;
+    }
+
+    public void IncreaseSpeed()
+    {
+        // Peningkatan kecepatan setiap skor bertambah 10
+        speed += 1.0f;
+        Debug.Log("Speed increased! New speed: " + speed);
+        UpdateBoxAnimatorSpeed();
+    }
+
+    // Assume you have a method to update the score, for example:
+    public void UpdateScore()
+    {
+        score++;
+        Debug.Log("Score increased! New score: " + score);
     }
 }
