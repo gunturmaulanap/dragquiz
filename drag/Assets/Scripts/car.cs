@@ -1,106 +1,163 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 
-public class car : MonoBehaviour
+public class Car : MonoBehaviour
 {
     public GameObject box, gameover, congratulation;
-    public TMP_Text soal_tampil, skor_tampil;
-    public float speed, sudut;
+    public TMP_Text questionDisplay, scoreDisplay;
+    public float speed, rotationAngle;
     public AutoMoveBW autoMoveScript;
 
-    public string [] soal, kuncijawaban;//80|23|45
-    string[] jawaban;
-    int nomor = -1;
-    int skor = 0;
+    public string[] questions, correctAnswers;
+    string[] currentAnswers;
+    int questionIndex = -1;
+    int score = 0;
 
-    void Start(){
+    private const float MaxSpeed = 5.0f;
+    private const float MinAnimatorSpeed = 1.0f;
+    private const float MaxAnimatorSpeed = 3.0f;
+
+    void Start()
+    {
         autoMoveScript = GameObject.FindObjectOfType<AutoMoveBW>();
-    StartCoroutine(lanjutsoal());
+        StartCoroutine(NextQuestion());
     }
 
     void Update()
     {
-        if (Input.GetKey(KeyCode.LeftArrow)){
-            GetComponent<Rigidbody>().velocity = new Vector3(-speed, 0,0);
-            transform.rotation = Quaternion.Euler(0,-10,0);
-        }
-        if (Input.GetKey(KeyCode.RightArrow)){
-            GetComponent<Rigidbody>().velocity = new Vector3(speed, 0,0);
-            transform.rotation = Quaternion.Euler(0,10,0);
-        }
-        if(Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow)){
-            GetComponent<Rigidbody>().velocity = new Vector3(0,0,0);
-            transform.rotation = Quaternion.Euler(0,0,0);
-        }
+        HandleInput();
     }
 
-     void OnTriggerEnter(Collider obj){
-        if (obj.name == "box"){
-            if (obj.transform.GetChild(0).GetComponent<TMP_Text>().text == jawaban[0]){
-                skor += 10;
-                skor_tampil.text = skor.ToString();
-                GetComponent<AudioSource>().Play();
-                
-                // Increase speed based on the score
-                speed += 1f; // Adjust this value based on your preference
-                UpdateBoxAnimatorSpeed();
+    void HandleInput()
+    {
+        if (Input.GetKey(KeyCode.LeftArrow))
+            MoveCar(-speed, -rotationAngle);
+        else if (Input.GetKey(KeyCode.RightArrow))
+            MoveCar(speed, rotationAngle);
+        else if (Input.GetKeyUp(KeyCode.LeftArrow) || Input.GetKeyUp(KeyCode.RightArrow))
+            StopCar();
+    }
 
-            } else{
+    void MoveCar(float velocity, float rotation)
+    {
+        GetComponent<Rigidbody>().velocity = new Vector3(velocity, 0, 0);
+        transform.rotation = Quaternion.Euler(0, rotation, 0);
+    }
+
+    void StopCar()
+    {
+        GetComponent<Rigidbody>().velocity = Vector3.zero;
+        transform.rotation = Quaternion.Euler(0, 0, 0);
+    }
+
+    void OnTriggerEnter(Collider obj)
+    {
+        if (obj.name == "box")
+        {
+            if (obj.transform.GetChild(0).GetComponent<TMP_Text>().text == currentAnswers[0])
+            {
+                UpdateScore(10);
+                GetComponent<AudioSource>().Play();
+                UpdateSpeed();
+
+            }
+            else
+            {
                 gameover.SetActive(true);
                 Time.timeScale = 0;
             }
-            for (int i = 0; i < obj.transform.parent.childCount; i++){
-                obj.transform.parent.GetChild(i).GetComponent<BoxCollider>().enabled = false;
-            }
+            DisableBoxColliders(obj.transform.parent);
             obj.gameObject.SetActive(false);
-            StartCoroutine(lanjutsoal());
+            StartCoroutine(NextQuestion());
         }
     }
 
-    void UpdateBoxAnimatorSpeed(){
-        // Adjust the animator speed based on the updated speed value
-        float animatorSpeed = Mathf.Clamp(speed / 5.0f, 1.0f, 3.0f); // Adjust the range based on your preference
+    void UpdateScore(int points)
+    {
+        score += points;
+        scoreDisplay.text = score.ToString();
+    }
+
+    void UpdateSpeed()
+    {
+        speed += 1f;
+        UpdateBoxAnimatorSpeed();
+    }
+
+    void UpdateBoxAnimatorSpeed()
+    {
+        float animatorSpeed = Mathf.Clamp(speed / MaxSpeed, MinAnimatorSpeed, MaxAnimatorSpeed);
         box.GetComponent<Animator>().speed = animatorSpeed;
     }
 
+    void DisableBoxColliders(Transform parent)
+    {
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            parent.GetChild(i).GetComponent<BoxCollider>().enabled = false;
+        }
+    }
 
-    IEnumerator lanjutsoal(){
+    IEnumerator NextQuestion()
+    {
         yield return new WaitForSeconds(1.5f);
 
-        nomor++;
+        questionIndex++;
 
-        if(nomor<soal.Length){
-            soal_tampil.transform.parent.gameObject.SetActive(true);
-            soal_tampil.text = soal[nomor];
-
-            box.GetComponent<Animator>().enabled = true;
-            box.GetComponent<Animator>().Play(0);
-
-            jawaban =  kuncijawaban[nomor].Split('|');
-                
-            for(int i=0;i<box.transform.childCount;i++){
-                box.transform.GetChild(i).GetChild(0).GetComponent<TMP_Text>().text = "";
-                box.transform.GetChild(i).gameObject.SetActive(true);
-                box.transform.GetChild(i).GetComponent<BoxCollider>().enabled = true;
-            }
-            int index = 0;
-            for(int i=0;i<box.transform.childCount;i++){
-                do {
-                    index = (int)Random.Range(0,2.4f);
-                } while(box.transform.GetChild(index).GetChild(0).GetComponent<TMP_Text>().text != "");
-                box.transform.GetChild(index).GetChild(0).GetComponent<TMP_Text>().text = jawaban[i];
-            }
-        } else{
+        if (questionIndex < questions.Length)
+        {
+            DisplayQuestion();
+        }
+        else
+        {
             Time.timeScale = 0;
             congratulation.SetActive(true);
         }
     }
 
-    public void restart()
+    void DisplayQuestion()
+    {
+        questionDisplay.transform.parent.gameObject.SetActive(true);
+        questionDisplay.text = questions[questionIndex];
+
+        box.GetComponent<Animator>().enabled = true;
+        box.GetComponent<Animator>().Play(0);
+
+        currentAnswers = correctAnswers[questionIndex].Split('|');
+
+        InitializeBoxes();
+    }
+
+    void InitializeBoxes()
+    {
+        for (int i = 0; i < box.transform.childCount; i++)
+        {
+            box.transform.GetChild(i).GetChild(0).GetComponent<TMP_Text>().text = "";
+            box.transform.GetChild(i).gameObject.SetActive(true);
+            box.transform.GetChild(i).GetComponent<BoxCollider>().enabled = true;
+        }
+
+        AssignAnswersToBoxes();
+    }
+
+    void AssignAnswersToBoxes()
+    {
+        for (int i = 0; i < box.transform.childCount; i++)
+        {
+            int index;
+            do
+            {
+                index = (int)Random.Range(0, box.transform.childCount);
+            } while (box.transform.GetChild(index).GetChild(0).GetComponent<TMP_Text>().text != "");
+            box.transform.GetChild(index).GetChild(0).GetComponent<TMP_Text>().text = currentAnswers[i];
+        }
+    }
+
+    public void Restart()
     {
         Time.timeScale = 1;
-        Application.LoadLevel(Application.loadedLevelName);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }
